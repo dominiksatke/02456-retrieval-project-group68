@@ -12,13 +12,16 @@ class Corpus:
             # load and process data
             self.ds = self.__load_data(base_dir=raw_data_dir)
             self.__rename_columns()
-            self.relevant_ids = self.__assign_ids()
+            if self.dataset_name == 'squad':
+                self.__wrap_squad_contexts()
+            self.__assign_ids()
             os.makedirs(f'{base_dir}/{self.dataset_name}', exist_ok=True)
             DatasetDict(self.ds).save_to_disk(f'{base_dir}/{self.dataset_name}')
             print(f'Saved {self.dataset_name} dataset to path {base_dir}/{self.dataset_name}.')
             shutil.rmtree(f'{base_dir}/raw')
         else:
             self.ds = load_from_disk(f'{base_dir}/{self.dataset_name}')
+        self.relevant_ids = self.__get_relevant_ids()
 
 
     @property
@@ -46,8 +49,13 @@ class Corpus:
             all_text += test_text
             all_ids  += test_ids
 
-        return Dataset.from_dict({'text': all_text,
-                                  'document_id': all_ids})
+        unique_documents = {}
+        for texts, ids in zip(all_text, all_ids):
+            for text, _id in zip(texts, ids):
+                unique_documents[_id] = text
+
+        return Dataset.from_dict({'text': [[text] for text in unique_documents.values()],
+                                  'document_id': [[_id] for _id in unique_documents.keys()]})
 
 
     def __load_data(self, base_dir) -> dict[Dataset]:
@@ -70,29 +78,33 @@ class Corpus:
             self.ds[key] = self.ds[key].rename_column(column_mapping[self.dataset_name], 'text')
         return self.ds
 
+    def __wrap_squad_contexts(self):
+        for key in self.ds:
+            self.ds[key] = self.ds[key].map(lambda row: {'text': [row['text']]})
+
     def __assign_ids(self):
         q_id_counter = 0
-        doc_id_counter = 0
-        relevant_document_ids = {}
+        text_to_doc_id = {}
 
         for key in self.ds:
             query_ids = []
             document_ids = []
-            for i in range(len(self.ds[key])):
+            for documents in self.ds[key]['text']:
                 query_ids.append(f'q{q_id_counter}')
-                documents = self.ds[key]['text'][i]
                 relevant_ids = []
                 for doc in documents:
-                    relevant_ids.append(f'doc{doc_id_counter}')
-                    doc_id_counter += 1
-                
+                    if doc not in text_to_doc_id:
+                        text_to_doc_id[doc] = f'doc{len(text_to_doc_id)}'
+                    relevant_ids.append(text_to_doc_id[doc])
                 document_ids.append(relevant_ids)
-                
-                relevant_document_ids[f'q{q_id_counter}'] = relevant_ids
                 q_id_counter += 1
                 
             self.ds[key] = self.ds[key].add_column('query_id', query_ids)
             self.ds[key] = self.ds[key].add_column('document_id', document_ids)
 
+    def __get_relevant_ids(self):
+        relevant_document_ids = {}
+        for key in self.ds:
+            for query_id, document_ids in zip(self.ds[key]['query_id'], self.ds[key]['document_id']):
+                relevant_document_ids[query_id] = document_ids
         return relevant_document_ids
-            
