@@ -15,4 +15,6 @@ class DPRLoss(nn.Module):
 
         Returns: A 1d torch tensor 
         """
-        raise NotImplementedError()
+        scores = queries @ documents.T
+        labels = torch.arange(queries.shape[0], device=scores.device)
+        return nn.functional.cross_entropy(scores, labels)
