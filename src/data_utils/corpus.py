@@ -13,6 +13,8 @@ class Corpus:
             # load and process data
             self.ds = self.__load_data(base_dir=raw_data_dir)
             self.__rename_columns()
+            if self.dataset_name == 'squad':
+                self.__wrap_squad_contexts()
             self.relevant_ids = self.__assign_ids()
             os.makedirs(f'{base_dir}/{self.dataset_name}', exist_ok=True)
             DatasetDict(self.ds).save_to_disk(f'{base_dir}/{self.dataset_name}')
@@ -52,8 +54,14 @@ class Corpus:
             all_text += test_text
             all_ids  += test_ids
 
-        return Dataset.from_dict({'text': all_text,
-                                  'document_id': all_ids})
+        # Keep each unique document once (a passage can be relevant to several queries)
+        unique_documents = {}
+        for texts, ids in zip(all_text, all_ids):
+            for text, _id in zip(texts, ids):
+                unique_documents[_id] = text
+
+        return Dataset.from_dict({'text': [[text] for text in unique_documents.values()],
+                                  'document_id': [[_id] for _id in unique_documents.keys()]})
 
 
     def __load_data(self, base_dir) -> dict[Dataset]:
@@ -76,21 +84,26 @@ class Corpus:
             self.ds[key] = self.ds[key].rename_column(column_mapping[self.dataset_name], 'text')
         return self.ds
 
+    def __wrap_squad_contexts(self):
+        # SQuAD stores one context string per question; the rest of the code expects a list of passages
+        for key in self.ds:
+            self.ds[key] = self.ds[key].map(lambda row: {'text': [row['text']]})
+
     def __assign_ids(self):
         q_id_counter = 0
-        doc_id_counter = 0
+        text_to_doc_id = {}  # identical passages share one id
         relevant_document_ids = {}
 
         for key in self.ds:
             query_ids = []
             document_ids = []
-            for i in range(len(self.ds[key])):
+            for documents in self.ds[key]['text']:
                 query_ids.append(f'q{q_id_counter}')
-                documents = self.ds[key]['text'][i]
                 relevant_ids = []
                 for doc in documents:
-                    relevant_ids.append(f'doc{doc_id_counter}')
-                    doc_id_counter += 1
+                    if doc not in text_to_doc_id:
+                        text_to_doc_id[doc] = f'doc{len(text_to_doc_id)}'
+                    relevant_ids.append(text_to_doc_id[doc])
                 
                 document_ids.append(relevant_ids)
                 
@@ -101,4 +114,3 @@ class Corpus:
             self.ds[key] = self.ds[key].add_column('document_id', document_ids)
 
         return relevant_document_ids
-            
