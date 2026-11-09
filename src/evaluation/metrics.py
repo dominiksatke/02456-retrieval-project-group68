@@ -4,7 +4,10 @@ def calculatePrecision(relevancies: list[bool], k: int):
     return sum(relevancies[:k]) / k
 
 def calculateRecall(relevancies: list[bool], query: Query, k: int):
-    return sum(relevancies[:k]) / query.getNumberOfRelevantDocuments()
+    num_rel = query.getNumberOfRelevantDocuments()
+    if num_rel == 0:
+        return 0.0
+    return sum(relevancies[:k]) / num_rel
 
 def calculateReciprocalRank(relevancies: list[bool], k: int):
     for rank, is_relevant in enumerate(relevancies[:k], start=1):
@@ -13,6 +16,8 @@ def calculateReciprocalRank(relevancies: list[bool], k: int):
     return 0.0
 
 def Evaluate(relevancies: list[list[bool]], queries: list[Query], ks: list[int] = None):
+    if not relevancies:
+        return {}
     assert len(relevancies) == len(queries), 'The number of relevant passages must match the number of queries'
     n_queries = len(queries)
 
