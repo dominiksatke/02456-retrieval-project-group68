@@ -1,0 +1,13 @@
+type: 'pretrained' #scratch, pretrained
+model_name: 'bert-base-uncased' #or 'answerdotai/ModernBERT-base' (but then also change tokenizer_name)
+pooling_type: 'cls' #mean, cls, max
+
+#Tokenization
+tokenizer_name: 'bert-base-uncased'
+query_max_len: 64
+passage_max_len: 256
+
+#Dense retrieval
+encode_batch_size: 64
+checkpoint_path: null # trained query and document encoders, one file, null = untrained pretrained backbone
+passage_vectors_path: null # where the encoded passages are saved
