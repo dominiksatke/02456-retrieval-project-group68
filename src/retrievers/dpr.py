@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from src.retrievers.base_retriever import Retriever
 from src.retrievers.models.encoder import TransformerEncoder
 from src.retrievers.models.pretrained_encoder import PretrainedEncoder
@@ -72,6 +73,11 @@ class DPR(Retriever):
 
         self.passage_vectors = self.__load_or_encode_passages(cfg.model.get('passage_vectors_path', None))
 
+        #Must match the loss used in training: normalize=True there means cosine similarity, so retrieval uses it as well
+        self.normalize = cfg.model.get('normalize', False)
+        if self.normalize:
+            self.passage_vectors = F.normalize(self.passage_vectors, dim=-1)
+
     def __load_models(self):
         query_encoder = build_encoder(self.cfg.model)
         document_encoder = build_encoder(self.cfg.model)
@@ -109,5 +115,7 @@ class DPR(Retriever):
         """@param queries: The query texts. Returns: num_queries x num_documents scores (dot products), columns in the order of self.index.GetDocuments()."""
 
         query_vectors = encode_texts(self.query_encoder, queries, self.tokenizer.encode_queries, self.batch_size, self.device)
+        if self.normalize:
+            query_vectors = F.normalize(query_vectors, dim=-1)
         scores = query_vectors @ self.passage_vectors.T
         return scores.numpy()
