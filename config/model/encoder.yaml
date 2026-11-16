@@ -4,3 +4,17 @@ hidden_dim: 32
 n_heads: 4
 n_layers: 6
 feed_forward_dim: 768
+
+type: 'scratch' #scratch pretrained
+vocab_size: 30522 #bert-base-uncased vocabulary
+max_len: 256
+
+#Tokenization
+tokenizer_name: 'bert-base-uncased'
+query_max_len: 64
+passage_max_len: 256
+
+#Dense retrieval
+encode_batch_size: 64
+checkpoint_path: null #trained query and document encoders
+passage_vectors_path: null #where the encoded passages are saved
