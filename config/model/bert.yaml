@@ -8,6 +8,7 @@ query_max_len: 64
 passage_max_len: 256
 
 #Dense retrieval
+normalize: false #true = cosine similarity; must match the loss setting (normalize) used in training
 encode_batch_size: 64
 checkpoint_path: null # trained query and document encoders, one file, null = untrained pretrained backbone
 passage_vectors_path: null # where the encoded passages are saved
