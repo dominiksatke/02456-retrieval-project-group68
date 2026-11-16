@@ -1,0 +1,40 @@
+#Runs every method in `methods` on every dataset in `datasets` and appends the scores to results_path.
+#Run: python main.py   (any setting can be overridden, e.g. python main.py datasets=[fiqa,squad] device=cpu)
+
+device: cuda                  #cuda, mps, cpu (falls back to cpu if unavailable)
+base_path: "."
+datasets: [fiqa]              #fiqa, squad
+splits: [validation, test]    #train, validation, test. splits a dataset doesn't have are skipped (SQuAD has no test)
+ks: [1, 5, 10]                #cutoffs for P@k, R@k and MRR@k
+results_path: outputs/results.csv
+cache_passage_vectors: true   #save DPR passage vectors and reuse them when the same model and weights run again
+
+methods:
+  #name: label in the results table, type: tf_idf, bm25, dpr
+  - name: tf_idf
+    type: tf_idf
+  - name: bm25
+    type: bm25
+    k1: 1.5
+    b: 0.75
+  - name: dpr_bert_untrained
+    type: dpr
+    model: bert               #loads config/model/bert.yaml
+    model_overrides:          #any setting from that file can be changed here
+      pooling_type: mean
+  # - name: dpr_scratch
+  #   type: dpr
+  #   model: encoder
+  #   model_overrides:
+  #     checkpoint_path: outputs/checkpoints/scratch_best.pt
+  # - name: dpr_bert_trained
+  #   type: dpr
+  #   model: bert
+  #   model_overrides:
+  #     checkpoint_path: outputs/checkpoints/bert_best.pt
+
+hydra:
+  job:
+    chdir: false              # keep relative paths relative to the repo root
+  run:
+    dir: "outputs/hydra/${now:%Y-%m-%d_%H-%M-%S}"
