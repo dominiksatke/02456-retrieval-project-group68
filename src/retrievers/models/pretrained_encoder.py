@@ -1,26 +1,7 @@
 import torch
 import torch.nn as nn
 from transformers import AutoModel
-
-
-def masked_pool(x: torch.tensor, attention_mask: torch.tensor, pooling_type: str) -> torch.tensor:
-    """ @param x: batch_size x sequence_length x emb_dim token vectors
-    @param attention_mask: batch_size x sequence_length, 1 = token, 0 = padding
-    @param pooling_type: cls | mean | max
-    Returns: batch_size x emb_dim. Mean and max ignore padding."""
-
-    if pooling_type == 'cls':
-        return x[:, 0]
-
-    mask = attention_mask.unsqueeze(-1).to(x.dtype)  # batch_size x sequence_length x 1
-    if pooling_type == 'mean':
-        return (x * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
-
-    if pooling_type == 'max':
-        return x.masked_fill(mask == 0, float('-inf')).max(dim=1).values
-
-    raise ValueError(f'Unknown pooling type {pooling_type}. Options are cls | mean | max')
-
+from src.retrievers.models.pooling import masked_pool
 
 class PretrainedEncoder(nn.Module):
     """ Wraps a pretrained Hugging Face encoder (e.g. bert-base-uncased or answerdotai/ModernBERT-base)
