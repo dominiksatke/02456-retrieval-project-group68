@@ -1,0 +1,22 @@
+defaults:
+  - _self_
+  - dataset: fiqa
+  - model: encoder
+
+device: cpu
+base_path: "."
+top_k: 10
+
+train:
+  epochs: 10
+  batch_size: 64
+  lr: 3e-4       # use 2e-5 for bert
+  weight_decay: 0.01
+  grad_clip: 1.0
+  temperature: 1.0
+  seed: 0
+  overfit_check: false
+
+hydra:
+  run:
+    dir: "outputs/train/"
