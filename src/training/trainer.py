@@ -3,6 +3,7 @@ import os
 
 import torch
 import torch.nn as nn
+from omegaconf import DictConfig, OmegaConf
 
 from src.training.loss import DPRLoss, in_batch_accuracy
 
@@ -107,10 +108,14 @@ class Trainer:
         if self.checkpoint_path is None:
             return
         os.makedirs(os.path.dirname(self.checkpoint_path) or '.', exist_ok=True)
+        # torch.load (PyTorch 2.6+) only opens plain types, so turn the Hydra config into a normal dict
+        config = self.config
+        if isinstance(config, DictConfig):
+            config = OmegaConf.to_container(config, resolve=True)
         torch.save({
             'query_encoder': query_encoder.state_dict(),
             'document_encoder': document_encoder.state_dict(),
-            'config': self.config,
+            'config': config,
             'record': record,
         }, self.checkpoint_path)
 
