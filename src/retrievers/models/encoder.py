@@ -18,6 +18,7 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x):
+        assert x.size(1) <= self.pe.size(1), f"sequence length {x.size(1)} > max_len {self.pe.size(1)}"
         x = x + self.pe[:, :x.size(1)]
         return x
 
@@ -101,6 +102,7 @@ class TransformerEncoder(nn.Module):
         self.vocab_size = vocab_size
         self.max_len = max_len
         self.pooling_type = pooling_type
+        self.cfg = cfg
         self.setup_model()
 
     def setup_model(self):
