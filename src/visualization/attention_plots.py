@@ -42,8 +42,10 @@ def plot_selected_heads(maps, tokens, mask, heads, index=0, title=None, save_pat
     """
     n = int(mask[index].sum())                              
     words = tokens[:n]
-    fig, axes = plt.subplots(1, len(heads), figsize=(4 * len(heads), 4.5),
+    size = max(4, 0.25 * n)          
+    fig, axes = plt.subplots(1, len(heads), figsize=(size * len(heads), size + 0.5),
                              layout='constrained', squeeze=False)
+
     for i, (l, h) in enumerate(heads):
         ax = axes[0, i]
         attn = maps[l][index, h][:n, :n]
