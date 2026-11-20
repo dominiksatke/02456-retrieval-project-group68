@@ -1,5 +1,6 @@
 import os
 import pickle
+import numpy as np
 from abc import ABC, abstractmethod
 from src.data_utils.dataset import DocumentDataset
 
@@ -41,11 +42,20 @@ class Retriever(ABC):
     def CalculateScores(self, query: str):
         raise NotImplementedError("Must overwrite")
     
-    def Lookup(self, queries: list[str], k: int) -> list:
-        """
-        @param queries: The input text(s) to which relevant passages should be found.
+    def Lookup(self, queries: list[str], k: int, batch_size: int = 256) -> list:
+        """@param queries: The input text(s) to which relevant passages should be found.
         @param k: The number of relevant passages to retrieve for each input query.
-        """
-        scores = self.CalculateScores(queries)
-        ranked_documents = [[d for _, d in sorted(zip(query_scores, self.index.GetDocuments()), key=lambda pair: pair[0], reverse=True)] for query_scores in scores]
-        return [ranked_document[:min(k, len(ranked_documents[0]))] for ranked_document in ranked_documents]
+        @param batch_size: Queries are scored this many at a time, so the full queries x documents score table is never in memory at once. """
+
+        documents = self.index.GetDocuments()
+        k = min(k, len(documents))
+        retrieved = []
+        for start in range(0, len(queries), batch_size):
+            scores = self.CalculateScores(queries[start:start + batch_size])
+            if hasattr(scores, 'toarray'):  # scipy sparse matrix
+                scores = scores.toarray()
+            scores = np.atleast_2d(np.asarray(scores))
+            #Highest score first; 'stable' keeps the original document order for equal scores, like Python's sorted()
+            top = np.argsort(-scores, axis=1, kind='stable')[:, :k]
+            retrieved += [[documents[j] for j in row] for row in top]
+        return retrieved
