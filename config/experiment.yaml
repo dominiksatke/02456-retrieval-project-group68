@@ -4,7 +4,7 @@
 device: cuda                  #cuda, mps, cpu (falls back to cpu if unavailable)
 base_path: "."
 datasets: [fiqa]              #fiqa, squad
-splits: [validation, test]    #train, validation, test. splits a dataset doesn't have are skipped (SQuAD has no test)
+splits: [validation]          #test only at the results freeze: python main.py 'splits=[test]'
 ks: [1, 5, 10]                #cutoffs for P@k, R@k and MRR@k
 results_path: outputs/results.csv
 cache_passage_vectors: true   #save DPR passage vectors and reuse them when the same model and weights run again
@@ -22,16 +22,18 @@ methods:
     model: bert               #loads config/model/bert.yaml
     model_overrides:          #any setting from that file can be changed here
       pooling_type: mean
-  # - name: dpr_scratch
+  # - name: scratch_mean_seed0
   #   type: dpr
   #   model: encoder
   #   model_overrides:
-  #     checkpoint_path: outputs/checkpoints/scratch_best.pt
-  # - name: dpr_bert_trained
+  #     pooling_type: mean
+  #     checkpoint_path: checkpoints/scratch_mean_seed0.pt
+  # - name: bert_cls_seed0
   #   type: dpr
   #   model: bert
   #   model_overrides:
-  #     checkpoint_path: outputs/checkpoints/bert_best.pt
+  #     pooling_type: cls  
+  #     checkpoint_path: checkpoints/bert_cls_seed0.pt
 
 hydra:
   job:
