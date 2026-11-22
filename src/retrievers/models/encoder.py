@@ -71,28 +71,30 @@ class MultiHeadedAttention(nn.Module):
 
 class EncoderBlock(nn.Module):
     """One pre-LN Transformer encoder block: x [B, L, d], mask [B, L] -> (x [B, L, d], weights [B, h, L, L])."""
-    def __init__(self, emb_dim: int, n_heads: int, feed_forward_dim: int):
+    def __init__(self, emb_dim: int, n_heads: int, feed_forward_dim: int, dropout: float = 0.0):
         super().__init__()
         self.attention = MultiHeadedAttention(emb_dim, n_heads)
         self.feed_forward = nn.Sequential(nn.Linear(emb_dim, feed_forward_dim), nn.GELU(), nn.Linear(feed_forward_dim, emb_dim))
         self.norm1 = nn.LayerNorm(emb_dim) # before attention
         self.norm2 = nn.LayerNorm(emb_dim) # before FFN
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, mask=None):
         # sub-layer 1: normalise, attend, add back
         attn_out, weights = self.attention(self.norm1(x), mask)
-        x = x + attn_out # residual: add the input back
+        x = x + self.dropout(attn_out) # residual: add the input back
         # sub-layer 2: normalise, feed-forward, add back
-        x = x + self.feed_forward(self.norm2(x))
+        x = x + self.dropout(self.feed_forward(self.norm2(x)))
         return x, weights
 
 
 class TransformerEncoder(nn.Module):
     def __init__(self, n_layers: int, n_heads: int, emb_dim: int, hidden_dim: int, feed_forward_dim: int,
-                 vocab_size: int = 30522, max_len: int = 256, pooling_type: str = 'mean', cfg=None):
+                 vocab_size: int = 30522, max_len: int = 256, pooling_type: str = 'mean', dropout: float = 0.0, cfg=None):
         super().__init__()
         if cfg is not None:
             pooling_type = cfg.pooling_type
+            dropout = cfg.dropout
         assert hidden_dim == emb_dim // n_heads, f"hidden_dim ({hidden_dim}) must equal emb_dim // n_heads ({emb_dim // n_heads})"
         self.n_layers = n_layers
         self.n_heads = n_heads
@@ -103,14 +105,16 @@ class TransformerEncoder(nn.Module):
         self.max_len = max_len
         self.pooling_type = pooling_type
         self.cfg = cfg
+        self.dropout = dropout
         self.setup_model()
 
     def setup_model(self):
         """Create the token embedding, positional encoding, encoder blocks and final LayerNorm."""
         self.token_embedding = nn.Embedding(self.vocab_size, self.emb_dim, padding_idx=0)
         self.positional_encoding = PositionalEncoding(self.emb_dim, self.max_len)
-        self.blocks = nn.ModuleList([EncoderBlock(self.emb_dim, self.n_heads, self.feed_forward_dim) for _ in range(self.n_layers)])
+        self.blocks = nn.ModuleList([EncoderBlock(self.emb_dim, self.n_heads, self.feed_forward_dim, self.dropout) for _ in range(self.n_layers)])
         self.final_norm = nn.LayerNorm(self.emb_dim)
+        self.embedding_dropout = nn.Dropout(self.dropout)
 
 
     def pool(self, x, attention_mask=None):
@@ -131,6 +135,7 @@ class TransformerEncoder(nn.Module):
         """
         x = self.token_embedding(input_ids)
         x = self.positional_encoding(x) #position added
+        x = self.embedding_dropout(x)
         attention_maps = []
         for block in self.blocks:
             x, weights = block(x, attention_mask)

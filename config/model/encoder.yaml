@@ -1,4 +1,5 @@
 pooling_type: 'cls' # mean | cls | max
+dropout: 0.0 
 emb_dim: 128
 hidden_dim: 32
 n_heads: 4
