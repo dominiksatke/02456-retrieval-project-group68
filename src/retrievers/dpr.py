@@ -92,7 +92,8 @@ class DPR(Retriever):
 
     def __load_or_encode_passages(self, vectors_path: str = None) -> torch.tensor:
         """Returns the N x emb_dim passage matrix. Rows follow the order of self.index.GetDocuments().
-        If vectors_path is given, vectors are loaded from it when they match the current documents, and saved to it otherwise."""
+        If vectors_path is given, vectors are loaded from it when they match the current documents, and saved to it otherwise.
+        Note: a saved file is matched by document ids only, not by model weights. Use a new path after retraining (main.py does this automatically)."""
 
         documents = self.index.GetDocuments()
         document_ids = [document.GetId() for document in documents]
