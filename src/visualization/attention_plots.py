@@ -20,7 +20,7 @@ def plot_attention_grid(maps, tokens, mask, index=0, title=None, save_path=None)
         for h in range(n_heads):
             ax = axes[l, h]
             attn = maps[l][index, h][:n, :n]
-            im = ax.imshow(attn.detach().numpy(), cmap='viridis', vmin=0, vmax=1)
+            im = ax.imshow(attn.detach().cpu().numpy(), cmap='viridis', vmin=0, vmax=1)
             ax.set_xticks(range(n)); ax.set_xticklabels(words, rotation=90)
             ax.set_yticks(range(n)); ax.set_yticklabels(words)
             ax.set_title(f'L {l+1}, H {h+1}')
@@ -49,7 +49,7 @@ def plot_selected_heads(maps, tokens, mask, heads, index=0, title=None, save_pat
     for i, (l, h) in enumerate(heads):
         ax = axes[0, i]
         attn = maps[l][index, h][:n, :n]
-        im = ax.imshow(attn.detach().numpy(), cmap='viridis', vmin=0, vmax=1)
+        im = ax.imshow(attn.detach().cpu().numpy(), cmap='viridis', vmin=0, vmax=1)
         ax.set_xticks(range(n)); ax.set_xticklabels(words, rotation=90)
         ax.set_yticks(range(n)); ax.set_yticklabels(words)
         ax.set_title(f'L{l+1} H{h+1}')
