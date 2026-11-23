@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 import json
 from datasets import Dataset, DatasetDict, load_from_disk
@@ -72,8 +73,21 @@ class Corpus:
 
         elif self.dataset_name == 'squad':
             ds = get_squad_dataset(base_dir)
+            return self.__split_squad(ds)
 
         return {key: ds[key] for key in ds.keys()}
+
+    def __split_squad(self, ds, val_fraction: float = 0.05, seed: int = 0) -> dict[Dataset]:
+        """SQuAD has no public test split. We use the official validation split as our test split,
+        and hold out val_fraction of the training articles as our validation split.
+        We split by article (title), so the same paragraph never ends up in both train and validation."""
+        titles = sorted(set(ds['train']['title']))
+        random.Random(seed).shuffle(titles)
+        val_titles = set(titles[:round(len(titles) * val_fraction)])
+
+        train = ds['train'].filter(lambda row: row['title'] not in val_titles)
+        val = ds['train'].filter(lambda row: row['title'] in val_titles)
+        return {'train': train, 'validation': val, 'test': ds['validation']}
 
     def __rename_columns(self) -> dict[Dataset]:
         column_mapping = {'fiqa':  'ground_truths',
