@@ -5,3 +5,4 @@ datasets
 scipy
 matplotlib
 .
+scikit-learn

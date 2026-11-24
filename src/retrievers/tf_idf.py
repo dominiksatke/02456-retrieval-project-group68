@@ -10,27 +10,39 @@ TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 
 
 class TFIDF(Retriever):
-    def __init__(self, documents: list[dict] = None, index_path: str = None) -> None:
+    def __init__(self, documents: list[dict] = None, index_path: str = None, stopwords=None) -> None:
+        """
+        Args:
+            stopwords (iterable of str): Words to drop from documents and queries
+        """
+
+        # with default value
+        self.stopwords = frozenset(stopwords) if stopwords else frozenset()
         super(TFIDF, self).__init__(documents, index_path)
         self.corpus_vocabulary = self.GetCorpusVocabulary()
         self.idf = self.GetInverseDocumentFrequencies()
+        self.BuildMatrix()
 
-        # Only run if we are in TFIDF class
-        if type(self) == TFIDF:
-            self.tfidf_matrix = self.GetDocumentsTFIDFVectors()
+    def BuildMatrix(self) -> None:
+        """
+        Function to build the document matrix used by CalculateScores
+        """
+        self.tfidf_matrix = self.GetDocumentsTFIDFVectors()
 
     def PreprocessText(self, text: str) -> list[str]:
         """
         Function to clean a text
-        
+
         Args:
             text (str): The text to clean
 
         Returns:
-            list of str: Cleaned out text (lower case, no numbers or punctuation marks)
+            list of str: Cleaned out text (lower case, no numbers or punctuation marks, no stop words)
         """
-
-        return TOKEN_PATTERN.findall(text.lower())
+        tokens = TOKEN_PATTERN.findall(text.lower())
+        if self.stopwords:
+            tokens = [token for token in tokens if token not in self.stopwords]
+        return tokens
         
     def GetQueryVocabulary(self, query: str) -> list[str]:
         """

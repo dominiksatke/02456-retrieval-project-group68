@@ -4,13 +4,14 @@ from src.retrievers.tf_idf import TFIDF
 
 
 class BM25(TFIDF):
-    def __init__(self, documents: list[dict] = None, index_path: str = None, k1: float = 1.5, b: float = 0.75) -> None:
+    def __init__(self, documents: list[dict] = None, index_path: str = None, k1: float = 1.5, b: float = 0.75, stopwords=None) -> None:
+
         self.k1 = k1
         self.b = b
-        super(BM25, self).__init__(documents, index_path)
+        super(BM25, self).__init__(documents, index_path, stopwords=stopwords)
 
-        if type(self) == BM25:
-            self.bm25_matrix = self.GetBM25Matrix()
+    def BuildMatrix(self) -> None:
+        self.bm25_matrix = self.GetBM25Matrix()
 
     def GetDocumentLengths(self):
         document_lengths = {}
