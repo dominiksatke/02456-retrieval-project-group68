@@ -11,6 +11,7 @@ from src.data_utils.corpus import Corpus
 from src.data_utils.query import Query
 from src.retrievers.tf_idf import TFIDF
 from src.retrievers.bm25 import BM25
+from src.retrievers.stopwords import get_stopwords
 from src.retrievers.dpr import DPR
 from src.retrievers.utils import retrieveQueryAndGetRelevancies
 from src.evaluation.metrics import Evaluate
@@ -46,10 +47,11 @@ def build_retriever(method, corpus: Corpus, dataset_name: str, cfg, device: str)
     documents = corpus.all_documents
 
     if method.type == 'tf_idf':
-        return TFIDF(documents=documents)
+        return TFIDF(documents=documents, stopwords=get_stopwords(method.get('stopwords', None)))
 
     if method.type == 'bm25':
-        return BM25(documents=documents, k1=method.get('k1', 1.5), b=method.get('b', 0.75))
+        return BM25(documents=documents, k1=method.get('k1', 1.5), b=method.get('b', 0.75),
+                    stopwords=get_stopwords(method.get('stopwords', None)))
 
     if method.type == 'dpr':
         model_cfg = OmegaConf.load(f'config/model/{method.model}.yaml')

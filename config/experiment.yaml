@@ -3,7 +3,7 @@
 
 device: cuda                  #cuda, mps, cpu (falls back to cpu if unavailable)
 base_path: "."
-datasets: [fiqa]              #fiqa, squad
+datasets: [fiqa, squad]       #fiqa, squad
 splits: [validation]          #test only at the results freeze: python main.py 'splits=[test]'
 ks: [1, 5, 10]                #cutoffs for P@k, R@k and MRR@k
 results_path: outputs/results.csv
@@ -11,12 +11,21 @@ cache_passage_vectors: true   #save DPR passage vectors and reuse them when the 
 
 methods:
   #name: label in the results table, type: tf_idf, bm25, dpr
+  #stopwords (tf_idf, bm25): none, lucene, nltk, sklearn
   - name: tf_idf
     type: tf_idf
+  - name: tf_idf_nltk
+    type: tf_idf
+    stopwords: nltk
   - name: bm25
     type: bm25
     k1: 1.5
     b: 0.75
+  # - name: bm25_nltk          #stop words вщes not affect BM25
+  #   type: bm25
+  #   k1: 1.5
+  #   b: 0.75
+  #   stopwords: nltk
   - name: dpr_bert_untrained
     type: dpr
     model: bert               #loads config/model/bert.yaml
